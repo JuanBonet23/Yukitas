@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yuca PRO — POS</title>
+
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#0b1224;
+      --card:#0b1224;
+      --stroke:rgba(255,255,255,.08);
+      --text:#e5e7eb;
+      --muted:rgba(229,231,235,.7);
+      --accent:#22c55e;
+      --accent2:#3b82f6;
+      --danger:#ef4444;
+      --gray:#94a3b8;
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
+      --radius:16px;
+    }
+
+    /* ===== base ===== */
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 30% -10%, rgba(34,197,94,.20), transparent 60%),
+                  radial-gradient(800px 500px at 90% 10%, rgba(59,130,246,.18), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+    }
+
+    .app{
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      background: rgba(11,18,36,.85);
+      box-shadow: var(--shadow);
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      line-height:1.05;
+    }
+    .brand b{ font-size:16px; letter-spacing:.3px; }
+    .brand span{ font-size:12px; color:var(--muted); }
+
+    .top-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      border:none;
+      border-radius:14px;
+      padding:12px 14px;
+      font-weight:800;
+      cursor:pointer;
+      color:#0b1224;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active{ transform: scale(.98); }
+    .btn.primary{ background: var(--accent); }
+    .btn.blue{ background: var(--accent2); color:white; }
+    .btn.gray{ background: rgba(148,163,184,.22); color: var(--text); border:1px solid var(--stroke); }
+    .btn.danger{ background: var(--danger); color:white; }
+    .btn.small{ padding:10px 12px; border-radius:12px; font-size:13px; }
+
+    /* ===== layout POS ===== */
+    .pos{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:12px;
+    }
+
+    .card{
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      background: rgba(11,18,36,.85);
+      box-shadow: var(--shadow);
+      padding:12px;
+    }
+
+    .card h3{
+      margin:0 0 10px 0;
+      font-size:14px;
+      letter-spacing:.35px;
+      color:rgba(229,231,235,.92);
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      font-weight:800;
+      color:rgba(229,231,235,.75);
+      margin:0 0 6px 2px;
+    }
+
+    input, select{
+      width:100%;
+      box-sizing:border-box;
+      padding:14px 14px;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      font-size:16px;
+      font-weight:700;
+    }
+    input::placeholder{ color: rgba(229,231,235,.45); font-weight:600; }
+
+    .totalBox{
+      border:1px solid rgba(34,197,94,.35);
+      background: rgba(34,197,94,.08);
+      border-radius: var(--radius);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:flex-start;
+      justify-content:center;
+      min-height: 88px;
+    }
+    .totalBox .tlabel{ font-size:12px; color: rgba(229,231,235,.75); font-weight:800; }
+    .totalBox .tvalue{ font-size:34px; font-weight:1000; letter-spacing:.5px; }
+
+    .hint{ font-size:12px; color: var(--muted); margin-top:8px; }
+
+    .stockRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .stockBig{
+      border:1px solid rgba(59,130,246,.35);
+      background: rgba(59,130,246,.10);
+      border-radius: var(--radius);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-height: 88px;
+    }
+    .stockBig .slabel{ font-size:12px; color: rgba(229,231,235,.75); font-weight:900; }
+    .stockBig .svalue{ font-size:30px; font-weight:1000; }
+
+    .tableWrap{
+      overflow:auto;
+      border-radius: 14px;
+      border:1px solid var(--stroke);
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+      min-width: 760px;
+      background: rgba(255,255,255,.02);
+    }
+    th, td{
+      padding:12px 10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      text-align:center;
+      white-space:nowrap;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background: rgba(2,6,23,.85);
+      backdrop-filter: blur(6px);
+      font-weight:900;
+      color:rgba(229,231,235,.9);
+      z-index:1;
+    }
+    tr:hover td{ background: rgba(255,255,255,.03); }
+
+    /* ===== modal clientes ===== */
+    .modalBackdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:999;
+    }
+    .modalBackdrop.open{ display:flex; }
+    .modal{
+      width:min(980px, 100%);
+      background: rgba(11,18,36,.95);
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .modalHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .modalHeader b{ font-size:14px; letter-spacing:.3px; }
+    .modalGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+
+    /* ===== responsive ===== */
+    @media (max-width: 980px){
+      .pos{ grid-template-columns: 1fr; }
+      table{ min-width: 700px; }
+    }
+    @media (max-width: 520px){
+      .grid3{ grid-template-columns: 1fr; }
+      .grid2{ grid-template-columns: 1fr; }
+      .stockRow{ grid-template-columns: 1fr; }
+      .totalBox .tvalue{ font-size:30px; }
+      .stockBig .svalue{ font-size:26px; }
+    }
+
+    /* ===== impresión ===== */
+    .print-area{ display:none; }
+    @media print {
+      body { background:#fff; color:#111; }
+      .app { display:none !important; }
+      .print-area{ display:block; padding:18px; font-family: Arial, sans-serif; }
+      .print-title{ font-size:18px; font-weight:900; margin-bottom:6px; }
+      .print-sub{ font-size:12px; margin-bottom:10px; color:#333; }
+      .print-box{ border:1px solid #ddd; padding:12px; border-radius:8px; margin-top:10px; }
+      .print-hr{ border-top:1px dashed #999; margin:10px 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app no-print">
+
+    <!-- ===== TOP BAR ===== -->
+    <div class="topbar">
+      <div class="brand">
+        <b>Yuca PRO — POS</b>
+        <span>Venta rápida • Stock • Clientes</span>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn blue" onclick="openClientes()">👤 Clientes</button>
+        <button class="btn gray" onclick="exportarRecibosCSV()">⬇️ Exportar recibos</button>
+        <button class="btn gray" onclick="exportarClientesCSV()">⬇️ Exportar clientes</button>
+      </div>
+    </div>
+
+    <!-- ===== POS GRID ===== -->
+    <div class="pos">
+
+      <!-- ===== LEFT: VENTA RÁPIDA ===== -->
+      <div class="card">
+        <h3>VENTA RÁPIDA</h3>
+
+        <div class="grid3">
+          <div>
+            <label>Cliente</label>
+            <select id="ventaCliente"></select>
+          </div>
+          <div>
+            <label>Fecha</label>
+            <input id="ventaFecha" type="datetime-local" />
+          </div>
+          <div>
+            <label>Método de pago</label>
+            <select id="ventaPago">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Nequi/Daviplata">Nequi/Daviplata</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:10px;">
+          <div>
+            <label>Kg vendidos</label>
+            <input id="ventaKg" type="number" step="0.01" min="0" placeholder="Ej: 12.5" oninput="recalcularTotal()" />
+            <div class="hint">No permite vender más del stock.</div>
+          </div>
+
+          <div>
+            <label>Precio por Kg ($)</label>
+            <input id="ventaPrecioKg" type="number" step="0.01" min="0" placeholder="Ej: 2500" oninput="recalcularTotal()" />
+          </div>
+
+          <div class="totalBox">
+            <div class="tlabel">TOTAL</div>
+            <div class="tvalue" id="ventaTotal">$0</div>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label>Nota (opcional)</label>
+            <input id="ventaNota" placeholder="Ej: Entrega a domicilio" />
+          </div>
+          <div>
+            <label>Vendedor (opcional)</label>
+            <input id="ventaVendedor" placeholder="Ej: Juan" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px;">
+          <button class="btn primary" onclick="guardarRecibo()">✅ Guardar y restar stock</button>
+          <button class="btn gray" onclick="limpiarVenta()">🧹 Limpiar</button>
+        </div>
+
+        <div class="hint">Tip: si el cliente no existe, toca <b>Clientes</b> arriba y lo creas sin salir de la venta.</div>
+      </div>
+
+      <!-- ===== RIGHT: STOCK + HISTORIAL ===== -->
+      <div class="card">
+        <h3>STOCK Y HISTORIAL</h3>
+
+        <div class="stockRow">
+          <div class="stockBig">
+            <div class="slabel">Stock actual (Kg)</div>
+            <div class="svalue" id="stockActual">0.00</div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label>Producción (+Kg)</label>
+              <input id="prodKg" type="number" step="0.01" min="0" placeholder="Ej: 50" />
+            </div>
+            <div>
+              <label>Ajuste (±Kg)</label>
+              <input id="ajusteStock" type="number" step="0.01" placeholder="Ej: -5 o 10" />
+            </div>
+
+            <button class="btn primary" onclick="registrarProduccion()">➕ Sumar</button>
+            <button class="btn blue" onclick="aplicarAjusteStock()">± Ajustar</button>
+
+            <button class="btn gray" onclick="document.getElementById('prodKg').value='';document.getElementById('ajusteStock').value=''">🧹 Limpiar</button>
+            <button class="btn danger" onclick="resetStock()">🧨 Reset 0</button>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:12px;">
+          <div style="grid-column: 1 / span 2;">
+            <label>Buscar recibos</label>
+            <input id="recBuscar" placeholder="Buscar por cliente o # recibo" oninput="renderRecibos()" />
+          </div>
+          <div style="display:flex; align-items:end; gap:8px;">
+            <button class="btn gray small" onclick="exportarRecibosCSV()">⬇️ CSV</button>
+            <button class="btn danger small" onclick="borrarTodosRecibos()">🗑️</button>
+          </div>
+        </div>
+
+        <div class="tableWrap" style="margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Fecha</th><th>Cliente</th><th>Kg</th><th>Precio/Kg</th><th>Total</th><th>Pago</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="recibosBody"></tbody>
+          </table>
+        </div>
+
+        <div class="hint">Eliminar un recibo devuelve los Kg al stock.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== MODAL CLIENTES ===== -->
+  <div class="modalBackdrop" id="clientesModal" onclick="modalBackdropClick(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modalHeader">
+        <b>Clientes</b>
+        <div class="row" style="gap:8px;">
+          <button class="btn gray small" onclick="exportarClientesCSV()">⬇️ CSV</button>
+          <button class="btn danger small" onclick="borrarTodosClientes()">🗑️ Borrar</button>
+          <button class="btn blue small" onclick="closeClientes()">Cerrar ✕</button>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(255,255,255,.03); box-shadow:none;">
+        <h3>CREAR CLIENTE</h3>
+        <div class="modalGrid">
+          <div><label>Nombre</label><input id="cliNombre" placeholder="Ej: Juan Pérez" /></div>
+          <div><label>Teléfono</label><input id="cliTel" placeholder="Ej: 3001234567" /></div>
+          <div><label>ID (opcional)</label><input id="cliId" placeholder="Ej: 123456789" /></div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div><label>Dirección (opcional)</label><input id="cliDir" placeholder="Ej: Calle 10 # 20-30" /></div>
+          <div><label>Nota (opcional)</label><input id="cliNota" placeholder="Ej: Cliente mayorista" /></div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px;">
+          <button class="btn primary" onclick="crearCliente(); refreshClientesSelect()">✅ Guardar</button>
+          <button class="btn gray" onclick="limpiarClienteForm()">🧹 Limpiar</button>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(255,255,255,.03); box-shadow:none;">
+        <h3>LISTADO</h3>
+        <div class="grid2" style="margin-bottom:10px;">
+          <div>
+            <label>Buscar</label>
+            <input id="cliBuscar" placeholder="Nombre / teléfono / id" oninput="renderClientes()" />
+          </div>
+          <div style="display:flex; gap:10px; align-items:end;">
+            <button class="btn gray" onclick="renderClientes()">🔄 Refrescar</button>
+            <button class="btn blue" onclick="refreshClientesSelect()">↩️ Actualizar selector</button>
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table style="min-width: 900px;">
+            <thead>
+              <tr>
+                <th>Nombre</th><th>Teléfono</th><th>ID</th><th>Dirección</th><th>Nota</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="clientesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== IMPRESIÓN ===== -->
+  <div class="print-area" id="printArea">
+    <div class="print-title">RECIBO DE VENTA (Yuca)</div>
+    <div class="print-sub" id="pMeta"></div>
+
+    <div class="print-box">
+      <div><b>Cliente:</b> <span id="pCliente"></span></div>
+      <div><b>Tel:</b> <span id="pTel"></span> &nbsp; | &nbsp; <b>ID:</b> <span id="pId"></span></div>
+      <div><b>Dirección:</b> <span id="pDir"></span></div>
+    </div>
+
+    <div class="print-box">
+      <div><b>Producto:</b> Yuca</div>
+      <div class="print-hr"></div>
+      <div><b>Kg:</b> <span id="pKg"></span></div>
+      <div><b>Precio/Kg:</b> <span id="pPrecioKg"></span></div>
+      <div class="print-hr"></div>
+      <div style="font-size:16px;"><b>Total:</b> <span id="pTotal"></span></div>
+      <div style="margin-top:6px;"><b>Pago:</b> <span id="pPago"></span></div>
+    </div>
+
+    <div class="print-box">
+      <div><b>Nota:</b> <span id="pNota"></span></div>
+      <div><b>Vendedor:</b> <span id="pVendedor"></span></div>
+    </div>
+
+    <div style="margin-top:12px; font-size:12px; color:#333;">Gracias por su compra.</div>
+  </div>
+
+  <script>
+    // ====== STORAGE KEYS ======
+    const K_CLIENTES = "yuca_clientes_simple_pos_v1";
+    const K_RECIBOS  = "yuca_recibos_simple_pos_v1";
+    const K_STOCK    = "yuca_stock_kg_pos_v1";
+
+    // ====== FORMAT ======
+    const money = (n) => (Number(n)||0).toLocaleString('es-CO', { maximumFractionDigits: 2 });
+    const kgfmt = (n) => (Number(n)||0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const nowISOForInput = () => {
+      const d = new Date();
+      const pad = (x)=> String(x).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+
+    // ====== DATA ======
+    function getClientes(){ return JSON.parse(localStorage.getItem(K_CLIENTES)) || []; }
+    function setClientes(x){ localStorage.setItem(K_CLIENTES, JSON.stringify(x)); }
+
+    function getRecibos(){ return JSON.parse(localStorage.getItem(K_RECIBOS)) || []; }
+    function setRecibos(x){ localStorage.setItem(K_RECIBOS, JSON.stringify(x)); }
+
+    function getStock(){
+      const v = parseFloat(localStorage.getItem(K_STOCK));
+      return Number.isFinite(v) ? v : 0;
+    }
+    function setStock(v){
+      localStorage.setItem(K_STOCK, String(v));
+      renderStock();
+    }
+
+    // ====== MODAL ======
+    function openClientes(){
+      document.getElementById('clientesModal').classList.add('open');
+      renderClientes();
+    }
+    function closeClientes(){
+      document.getElementById('clientesModal').classList.remove('open');
+    }
+    function modalBackdropClick(e){
+      // click fuera del modal lo cierra
+      if(e.target && e.target.id === 'clientesModal') closeClientes();
+    }
+
+    // ====== STOCK UI ======
+    function renderStock(){
+      document.getElementById('stockActual').textContent = kgfmt(getStock());
+    }
+
+    function registrarProduccion(){
+      const kg = parseFloat(document.getElementById('prodKg').value) || 0;
+      if(kg <= 0) return alert("Kg procesados debe ser > 0");
+      const nuevo = getStock() + kg;
+      setStock(nuevo);
+      document.getElementById('prodKg').value = '';
+      alert(`Producción: +${kgfmt(kg)} Kg. Stock: ${kgfmt(nuevo)} Kg`);
+    }
+
+    function aplicarAjusteStock(){
+      const adj = parseFloat(document.getElementById('ajusteStock').value);
+      if(!Number.isFinite(adj) || adj === 0) return alert("Ingresa un ajuste válido (ej: -5 o 10).");
+      const nuevo = Math.max(0, getStock() + adj);
+      setStock(nuevo);
+      document.getElementById('ajusteStock').value = '';
+      alert(`Ajuste aplicado. Stock: ${kgfmt(nuevo)} Kg`);
+    }
+
+    function resetStock(){
+      if(!confirm("¿Seguro que quieres poner el stock en 0?")) return;
+      setStock(0);
+    }
+
+    // ====== CLIENTES ======
+    function limpiarClienteForm(){
+      ['cliNombre','cliTel','cliId','cliDir','cliNota'].forEach(id => document.getElementById(id).value='');
+    }
+
+    function crearCliente(){
+      const nombre = document.getElementById('cliNombre').value.trim();
+      const tel    = document.getElementById('cliTel').value.trim();
+      const cid    = document.getElementById('cliId').value.trim();
+      const dir    = document.getElementById('cliDir').value.trim();
+      const nota   = document.getElementById('cliNota').value.trim();
+
+      if(!nombre) return alert("Nombre es obligatorio.");
+
+      const clientes = getClientes();
+      if(cid && clientes.some(c => c.idNumber === cid)){
+        return alert("Ya existe un cliente con esa identificación.");
+      }
+
+      clientes.unshift({ id: uid(), nombre, tel, idNumber: cid, dir, nota, createdAtISO: new Date().toISOString() });
+      setClientes(clientes);
+
+      limpiarClienteForm();
+      renderClientes();
+      refreshClientesSelect();
+    }
+
+    function eliminarCliente(id){
+      if(!confirm("¿Eliminar cliente?")) return;
+      setClientes(getClientes().filter(c => c.id !== id));
+      renderClientes();
+      refreshClientesSelect();
+    }
+
+    function borrarTodosClientes(){
+      if(!confirm("¿Eliminar TODOS los clientes?")) return;
+      localStorage.removeItem(K_CLIENTES);
+      renderClientes();
+      refreshClientesSelect();
+    }
+
+    function renderClientes(){
+      const q = (document.getElementById('cliBuscar')?.value || "").toLowerCase();
+      const clientes = getClientes().filter(c => (`${c.nombre} ${c.tel} ${c.idNumber}`).toLowerCase().includes(q));
+      const body = document.getElementById('clientesBody');
+      body.innerHTML = '';
+      clientes.forEach(c => {
+        body.innerHTML += `
+          <tr>
+            <td>${c.nombre||''}</td>
+            <td>${c.tel||''}</td>
+            <td>${c.idNumber||''}</td>
+            <td>${c.dir||''}</td>
+            <td>${c.nota||''}</td>
+            <td><button class="btn danger small" onclick="eliminarCliente('${c.id}')">Eliminar</button></td>
+          </tr>`;
+      });
+    }
+
+    function exportarClientesCSV(){
+      const clientes = getClientes();
+      if(clientes.length === 0) return alert("No hay clientes.");
+      const sep=';';
+      let csv = "Nombre;Telefono;Identificacion;Direccion;Nota;Creado\n";
+      clientes.slice().reverse().forEach(c=>{
+        csv += [c.nombre||'', c.tel||'', c.idNumber||'', c.dir||'', c.nota||'', c.createdAtISO||'']
+          .map(v => String(v).replaceAll('\n',' ').replaceAll(sep, ',')).join(sep) + "\n";
+      });
+      descargarBlob(csv, "clientes_yuca.csv", "text/csv;charset=utf-8;");
+    }
+
+    // ====== VENTA ======
+    function refreshClientesSelect(){
+      const sel = document.getElementById('ventaCliente');
+      const clientes = getClientes();
+      sel.innerHTML = '';
+
+      if(clientes.length === 0){
+        sel.innerHTML = `<option value="">(Primero crea un cliente)</option>`;
+        sel.disabled = true;
+        return;
+      }
+      sel.disabled = false;
+      sel.innerHTML = `<option value="">Selecciona...</option>` + clientes.map(c =>
+        `<option value="${c.id}">${c.nombre}${c.tel ? ' - ' + c.tel : ''}${c.idNumber ? ' - ' + c.idNumber : ''}</option>`
+      ).join('');
+    }
+
+    function recalcularTotal(){
+      const kg = parseFloat(document.getElementById('ventaKg').value) || 0;
+      const pk = parseFloat(document.getElementById('ventaPrecioKg').value) || 0;
+      document.getElementById('ventaTotal').textContent = `$${money(kg * pk)}`;
+    }
+
+    function limpiarVenta(){
+      document.getElementById('ventaCliente').value = '';
+      document.getElementById('ventaFecha').value = nowISOForInput();
+      document.getElementById('ventaPago').value = 'Efectivo';
+      document.getElementById('ventaKg').value = '';
+      document.getElementById('ventaPrecioKg').value = '';
+      document.getElementById('ventaNota').value = '';
+      document.getElementById('ventaVendedor').value = '';
+      recalcularTotal();
+    }
+
+    function guardarRecibo(){
+      const clienteId = document.getElementById('ventaCliente').value;
+      if(!clienteId) return alert("Selecciona un cliente.");
+
+      const kg = parseFloat(document.getElementById('ventaKg').value) || 0;
+      const pk = parseFloat(document.getElementById('ventaPrecioKg').value) || 0;
+      if(kg <= 0) return alert("Kg vendidos debe ser > 0");
+      if(pk <= 0) return alert("Precio/Kg debe ser > 0");
+
+      const stock = getStock();
+      if(kg > stock){
+        return alert(`Stock insuficiente.\nStock: ${kgfmt(stock)} Kg\nIntentas vender: ${kgfmt(kg)} Kg`);
+      }
+
+      const cli = getClientes().find(c => c.id === clienteId);
+      if(!cli) return alert("Cliente no válido.");
+
+      const fechaInput = document.getElementById('ventaFecha').value || nowISOForInput();
+      const fechaISO = new Date(fechaInput).toISOString();
+      const pago = document.getElementById('ventaPago').value;
+      const total = kg * pk;
+
+      const recibos = getRecibos();
+      const numero = (recibos[0]?.numero || 0) + 1;
+
+      const recibo = {
+        id: uid(),
+        numero,
+        fechaISO,
+        clienteId,
+        clienteNombre: cli.nombre,
+        clienteTel: cli.tel || '',
+        clienteIdNumber: cli.idNumber || '',
+        clienteDir: cli.dir || '',
+        pago,
+        vendedor: document.getElementById('ventaVendedor').value.trim(),
+        nota: document.getElementById('ventaNota').value.trim(),
+        kg,
+        precioKg: pk,
+        total
+      };
+
+      recibos.unshift(recibo);
+      setRecibos(recibos);
+
+      // restar stock
+      setStock(stock - kg);
+
+      // preparar impresión
+      cargarReciboParaImprimir(recibo.id);
+
+      limpiarVenta();
+      renderRecibos();
+
+      alert(`Recibo #${numero} guardado.\nStock restante: ${kgfmt(getStock())} Kg`);
+    }
+
+    // ====== RECIBOS ======
+    function renderRecibos(){
+      const q = (document.getElementById('recBuscar').value || "").toLowerCase();
+      const recibos = getRecibos().filter(r => (`#${r.numero} ${r.clienteNombre}`).toLowerCase().includes(q));
+
+      const body = document.getElementById('recibosBody');
+      body.innerHTML = '';
+      recibos.forEach(r=>{
+        const fecha = new Date(r.fechaISO).toLocaleString('es-CO');
+        body.innerHTML += `
+          <tr>
+            <td>${r.numero}</td>
+            <td>${fecha}</td>
+            <td>${r.clienteNombre}</td>
+            <td>${kgfmt(r.kg)}</td>
+            <td>$${money(r.precioKg)}</td>
+            <td>$${money(r.total)}</td>
+            <td>${r.pago}</td>
+            <td>
+              <button class="btn blue small" onclick="verImprimir('${r.id}')">Imprimir</button>
+              <button class="btn danger small" onclick="eliminarRecibo('${r.id}')">Eliminar</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    function eliminarRecibo(id){
+      const recibos = getRecibos();
+      const r = recibos.find(x => x.id === id);
+      if(!r) return alert("Recibo no encontrado.");
+
+      if(!confirm(`¿Eliminar el recibo #${r.numero}?\nSe devolverán ${kgfmt(r.kg)} Kg al stock.`)) return;
+
+      setRecibos(recibos.filter(x => x.id !== id));
+      setStock(getStock() + (Number(r.kg) || 0));
+
+      renderRecibos();
+      alert(`Recibo eliminado. Stock actual: ${kgfmt(getStock())} Kg`);
+    }
+
+    function borrarTodosRecibos(){
+      const recibos = getRecibos();
+      if(recibos.length === 0) return alert("No hay recibos para borrar.");
+
+      const totalKg = recibos.reduce((a, r) => a + (Number(r.kg) || 0), 0);
+      if(!confirm(`¿Eliminar TODOS los recibos?\nSe devolverán ${kgfmt(totalKg)} Kg al stock.`)) return;
+
+      localStorage.removeItem(K_RECIBOS);
+      setStock(getStock() + totalKg);
+
+      renderRecibos();
+      alert(`Recibos borrados. Stock actual: ${kgfmt(getStock())} Kg`);
+    }
+
+    function exportarRecibosCSV(){
+      const recibos = getRecibos();
+      if(recibos.length === 0) return alert("No hay recibos.");
+      const sep=';';
+      let csv = "Numero;Fecha;Cliente;Kg;PrecioKg;Total;Pago;Nota;Vendedor\n";
+      recibos.slice().reverse().forEach(r=>{
+        const fecha = new Date(r.fechaISO).toLocaleString('es-CO');
+        csv += [r.numero, fecha, r.clienteNombre, r.kg, r.precioKg, r.total, r.pago, r.nota||'', r.vendedor||'']
+          .map(v => String(v).replaceAll('\n',' ').replaceAll(sep, ',')).join(sep) + "\n";
+      });
+      descargarBlob(csv, "recibos_yuca.csv", "text/csv;charset=utf-8;");
+    }
+
+    // ====== IMPRESIÓN ======
+    function verImprimir(reciboId){
+      cargarReciboParaImprimir(reciboId);
+      window.print();
+    }
+
+    function cargarReciboParaImprimir(reciboId){
+      const r = getRecibos().find(x => x.id === reciboId);
+      if(!r) return alert("Recibo no encontrado.");
+
+      document.getElementById('pMeta').textContent =
+        `Recibo #${r.numero} — ${new Date(r.fechaISO).toLocaleString('es-CO')} — Pago: ${r.pago}`;
+
+      document.getElementById('pCliente').textContent = r.clienteNombre;
+      document.getElementById('pTel').textContent = r.clienteTel || '';
+      document.getElementById('pId').textContent = r.clienteIdNumber || '';
+      document.getElementById('pDir').textContent = r.clienteDir || '';
+
+      document.getElementById('pKg').textContent = kgfmt(r.kg);
+      document.getElementById('pPrecioKg').textContent = `$${money(r.precioKg)}`;
+      document.getElementById('pTotal').textContent = `$${money(r.total)}`;
+      document.getElementById('pPago').textContent = r.pago;
+
+      document.getElementById('pNota').textContent = r.nota || '';
+      document.getElementById('pVendedor').textContent = r.vendedor || '';
+    }
+
+    // ====== DESCARGA ======
+    function descargarBlob(content, filename, mime){
+      const blob = new Blob([content], { type: mime });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ====== INIT ======
+    function init(){
+      document.getElementById('ventaFecha').value = nowISOForInput();
+      refreshClientesSelect();
+      limpiarVenta();
+      renderRecibos();
+      renderStock();
+      renderClientes();
+
+      // Atajos POS (opcionales): Enter para guardar si estás en ventaPrecioKg o ventaKg
+      document.getElementById('ventaPrecioKg').addEventListener('keydown', (e)=>{ if(e.key==='Enter') guardarRecibo(); });
+      document.getElementById('ventaKg').addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('ventaPrecioKg').focus(); });
+    }
+    window.onload = init;
+  </script>
+</body>
+</html>
