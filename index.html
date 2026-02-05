@@ -269,6 +269,45 @@
       .print-hr{ border-top:1px dashed #999; margin:10px 0; }
     }
   </style>
+
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0tlvWsAczFsLwwhu8pv6Dl-jYQouwhXk",
+    authDomain: "yukitas-3652a.firebaseapp.com",
+    projectId: "yukitas-3652a",
+    storageBucket: "yukitas-3652a.firebasestorage.app",
+    messagingSenderId: "1071257988750",
+    appId: "1:1071257988750:web:e82461862dfbdeccbd63df",
+    measurementId: "G-NNW6D5TZR2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Misma data para todos los dispositivos
+  const storeId = "yukitas";
+
+  window.cloud = {
+    async load() {
+      const ref = doc(db, "stores", storeId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        const init = { stock: 0, clientes: [], recibos: [] };
+        await setDoc(ref, init);
+        return init;
+      }
+      return snap.data();
+    },
+    async save(data) {
+      const ref = doc(db, "stores", storeId);
+      await setDoc(ref, data);
+    }
+  };
+</script>
+
 </head>
 
 <body>
