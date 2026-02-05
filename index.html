@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yuca PRO — POS</title>
+  <title>Yuca PRO — POS (Yukitas)</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <style>
     :root{
@@ -20,12 +21,10 @@
       --accent:#22c55e;
       --accent2:#3b82f6;
       --danger:#ef4444;
-      --gray:#94a3b8;
       --shadow: 0 18px 40px rgba(0,0,0,.35);
       --radius:16px;
     }
 
-    /* ===== base ===== */
     body{
       margin:0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -56,20 +55,11 @@
       box-shadow: var(--shadow);
     }
 
-    .brand{
-      display:flex;
-      flex-direction:column;
-      line-height:1.05;
-    }
+    .brand{ display:flex; flex-direction:column; line-height:1.05; }
     .brand b{ font-size:16px; letter-spacing:.3px; }
     .brand span{ font-size:12px; color:var(--muted); }
 
-    .top-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+    .top-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
 
     .btn{
       border:none;
@@ -91,7 +81,6 @@
     .btn.danger{ background: var(--danger); color:white; }
     .btn.small{ padding:10px 12px; border-radius:12px; font-size:13px; }
 
-    /* ===== layout POS ===== */
     .pos{
       display:grid;
       grid-template-columns: 1.05fr .95fr;
@@ -113,16 +102,8 @@
       color:rgba(229,231,235,.92);
     }
 
-    .grid3{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap:10px;
-    }
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
+    .grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
 
     label{
       display:block;
@@ -163,11 +144,7 @@
 
     .hint{ font-size:12px; color: var(--muted); margin-top:8px; }
 
-    .stockRow{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
+    .stockRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .stockBig{
       border:1px solid rgba(59,130,246,.35);
       background: rgba(59,130,246,.10);
@@ -210,7 +187,6 @@
     }
     tr:hover td{ background: rgba(255,255,255,.03); }
 
-    /* ===== modal clientes ===== */
     .modalBackdrop{
       position:fixed;
       inset:0;
@@ -238,13 +214,8 @@
       margin-bottom:8px;
     }
     .modalHeader b{ font-size:14px; letter-spacing:.3px; }
-    .modalGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap:10px;
-    }
+    .modalGrid{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 
-    /* ===== responsive ===== */
     @media (max-width: 980px){
       .pos{ grid-template-columns: 1fr; }
       table{ min-width: 700px; }
@@ -257,7 +228,6 @@
       .stockBig .svalue{ font-size:26px; }
     }
 
-    /* ===== impresión ===== */
     .print-area{ display:none; }
     @media print {
       body { background:#fff; color:#111; }
@@ -270,54 +240,53 @@
     }
   </style>
 
+  <!-- ===== Firebase (Firestore) - CDN module ===== -->
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB0tlvWsAczFsLwwhu8pv6Dl-jYQouwhXk",
-    authDomain: "yukitas-3652a.firebaseapp.com",
-    projectId: "yukitas-3652a",
-    storageBucket: "yukitas-3652a.firebasestorage.app",
-    messagingSenderId: "1071257988750",
-    appId: "1:1071257988750:web:e82461862dfbdeccbd63df",
-    measurementId: "G-NNW6D5TZR2"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0tlvWsAczFsLwwhu8pv6Dl-jYQouwhXk",
+      authDomain: "yukitas-3652a.firebaseapp.com",
+      projectId: "yukitas-3652a",
+      storageBucket: "yukitas-3652a.firebasestorage.app",
+      messagingSenderId: "1071257988750",
+      appId: "1:1071257988750:web:e82461862dfbdeccbd63df",
+      measurementId: "G-NNW6D5TZR2"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  // Misma data para todos los dispositivos
-  const storeId = "yukitas";
+    // Misma data para todos
+    const storeId = "yukitas";
 
-  window.cloud = {
-    async load() {
-      const ref = doc(db, "stores", storeId);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        const init = { stock: 0, clientes: [], recibos: [] };
-        await setDoc(ref, init);
-        return init;
+    window.cloud = {
+      async load() {
+        const ref = doc(db, "stores", storeId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          const init = { stock: 0, clientes: [], recibos: [] };
+          await setDoc(ref, init);
+          return init;
+        }
+        return snap.data();
+      },
+      async save(data) {
+        const ref = doc(db, "stores", storeId);
+        await setDoc(ref, data);
       }
-      return snap.data();
-    },
-    async save(data) {
-      const ref = doc(db, "stores", storeId);
-      await setDoc(ref, data);
-    }
-  };
-</script>
-
+    };
+  </script>
 </head>
 
 <body>
   <div class="app no-print">
 
-    <!-- ===== TOP BAR ===== -->
     <div class="topbar">
       <div class="brand">
-        <b>Yuca PRO — POS</b>
-        <span>Venta rápida • Stock • Clientes</span>
+        <b>Yukitas — POS</b>
+        <span>Venta rápida • Stock • Clientes (nube)</span>
       </div>
 
       <div class="top-actions">
@@ -327,10 +296,9 @@
       </div>
     </div>
 
-    <!-- ===== POS GRID ===== -->
     <div class="pos">
 
-      <!-- ===== LEFT: VENTA RÁPIDA ===== -->
+      <!-- LEFT -->
       <div class="card">
         <h3>VENTA RÁPIDA</h3>
 
@@ -390,7 +358,7 @@
         <div class="hint">Tip: si el cliente no existe, toca <b>Clientes</b> arriba y lo creas sin salir de la venta.</div>
       </div>
 
-      <!-- ===== RIGHT: STOCK + HISTORIAL ===== -->
+      <!-- RIGHT -->
       <div class="card">
         <h3>STOCK Y HISTORIAL</h3>
 
@@ -446,12 +414,12 @@
     </div>
   </div>
 
-  <!-- ===== MODAL CLIENTES ===== -->
+  <!-- MODAL CLIENTES -->
   <div class="modalBackdrop" id="clientesModal" onclick="modalBackdropClick(event)">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modalHeader">
         <b>Clientes</b>
-        <div class="row" style="gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn gray small" onclick="exportarClientesCSV()">⬇️ CSV</button>
           <button class="btn danger small" onclick="borrarTodosClientes()">🗑️ Borrar</button>
           <button class="btn blue small" onclick="closeClientes()">Cerrar ✕</button>
@@ -472,7 +440,7 @@
         </div>
 
         <div class="grid2" style="margin-top:12px;">
-          <button class="btn primary" onclick="crearCliente(); refreshClientesSelect()">✅ Guardar</button>
+          <button class="btn primary" onclick="crearCliente()">✅ Guardar</button>
           <button class="btn gray" onclick="limpiarClienteForm()">🧹 Limpiar</button>
         </div>
       </div>
@@ -501,11 +469,10 @@
           </table>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- ===== IMPRESIÓN ===== -->
+  <!-- IMPRESIÓN -->
   <div class="print-area" id="printArea">
     <div class="print-title">RECIBO DE VENTA (Yuca)</div>
     <div class="print-sub" id="pMeta"></div>
@@ -535,7 +502,7 @@
   </div>
 
   <script>
-    // ====== STORAGE KEYS ======
+    // ====== STORAGE KEYS (local cache) ======
     const K_CLIENTES = "yuca_clientes_simple_pos_v1";
     const K_RECIBOS  = "yuca_recibos_simple_pos_v1";
     const K_STOCK    = "yuca_stock_kg_pos_v1";
@@ -552,7 +519,7 @@
 
     function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 
-    // ====== DATA ======
+    // ====== LOCAL DATA ======
     function getClientes(){ return JSON.parse(localStorage.getItem(K_CLIENTES)) || []; }
     function setClientes(x){ localStorage.setItem(K_CLIENTES, JSON.stringify(x)); }
 
@@ -568,6 +535,16 @@
       renderStock();
     }
 
+    // ====== CLOUD SYNC ======
+    async function syncCloud(){
+      // Guardar estado completo a Firestore
+      await window.cloud.save({
+        stock: getStock(),
+        clientes: getClientes(),
+        recibos: getRecibos()
+      });
+    }
+
     // ====== MODAL ======
     function openClientes(){
       document.getElementById('clientesModal').classList.add('open');
@@ -577,7 +554,6 @@
       document.getElementById('clientesModal').classList.remove('open');
     }
     function modalBackdropClick(e){
-      // click fuera del modal lo cierra
       if(e.target && e.target.id === 'clientesModal') closeClientes();
     }
 
@@ -586,27 +562,30 @@
       document.getElementById('stockActual').textContent = kgfmt(getStock());
     }
 
-    function registrarProduccion(){
+    async function registrarProduccion(){
       const kg = parseFloat(document.getElementById('prodKg').value) || 0;
       if(kg <= 0) return alert("Kg procesados debe ser > 0");
       const nuevo = getStock() + kg;
       setStock(nuevo);
       document.getElementById('prodKg').value = '';
+      await syncCloud();
       alert(`Producción: +${kgfmt(kg)} Kg. Stock: ${kgfmt(nuevo)} Kg`);
     }
 
-    function aplicarAjusteStock(){
+    async function aplicarAjusteStock(){
       const adj = parseFloat(document.getElementById('ajusteStock').value);
       if(!Number.isFinite(adj) || adj === 0) return alert("Ingresa un ajuste válido (ej: -5 o 10).");
       const nuevo = Math.max(0, getStock() + adj);
       setStock(nuevo);
       document.getElementById('ajusteStock').value = '';
+      await syncCloud();
       alert(`Ajuste aplicado. Stock: ${kgfmt(nuevo)} Kg`);
     }
 
-    function resetStock(){
+    async function resetStock(){
       if(!confirm("¿Seguro que quieres poner el stock en 0?")) return;
       setStock(0);
+      await syncCloud();
     }
 
     // ====== CLIENTES ======
@@ -614,7 +593,7 @@
       ['cliNombre','cliTel','cliId','cliDir','cliNota'].forEach(id => document.getElementById(id).value='');
     }
 
-    function crearCliente(){
+    async function crearCliente(){
       const nombre = document.getElementById('cliNombre').value.trim();
       const tel    = document.getElementById('cliTel').value.trim();
       const cid    = document.getElementById('cliId').value.trim();
@@ -634,20 +613,23 @@
       limpiarClienteForm();
       renderClientes();
       refreshClientesSelect();
+      await syncCloud();
     }
 
-    function eliminarCliente(id){
+    async function eliminarCliente(id){
       if(!confirm("¿Eliminar cliente?")) return;
       setClientes(getClientes().filter(c => c.id !== id));
       renderClientes();
       refreshClientesSelect();
+      await syncCloud();
     }
 
-    function borrarTodosClientes(){
+    async function borrarTodosClientes(){
       if(!confirm("¿Eliminar TODOS los clientes?")) return;
       localStorage.removeItem(K_CLIENTES);
       renderClientes();
       refreshClientesSelect();
+      await syncCloud();
     }
 
     function renderClientes(){
@@ -692,9 +674,11 @@
         return;
       }
       sel.disabled = false;
-      sel.innerHTML = `<option value="">Selecciona...</option>` + clientes.map(c =>
-        `<option value="${c.id}">${c.nombre}${c.tel ? ' - ' + c.tel : ''}${c.idNumber ? ' - ' + c.idNumber : ''}</option>`
-      ).join('');
+      sel.innerHTML =
+        `<option value="">Selecciona...</option>` +
+        clientes.map(c =>
+          `<option value="${c.id}">${c.nombre}${c.tel ? ' - ' + c.tel : ''}${c.idNumber ? ' - ' + c.idNumber : ''}</option>`
+        ).join('');
     }
 
     function recalcularTotal(){
@@ -714,7 +698,7 @@
       recalcularTotal();
     }
 
-    function guardarRecibo(){
+    async function guardarRecibo(){
       const clienteId = document.getElementById('ventaCliente').value;
       if(!clienteId) return alert("Selecciona un cliente.");
 
@@ -768,6 +752,7 @@
       limpiarVenta();
       renderRecibos();
 
+      await syncCloud();
       alert(`Recibo #${numero} guardado.\nStock restante: ${kgfmt(getStock())} Kg`);
     }
 
@@ -797,7 +782,7 @@
       });
     }
 
-    function eliminarRecibo(id){
+    async function eliminarRecibo(id){
       const recibos = getRecibos();
       const r = recibos.find(x => x.id === id);
       if(!r) return alert("Recibo no encontrado.");
@@ -808,10 +793,11 @@
       setStock(getStock() + (Number(r.kg) || 0));
 
       renderRecibos();
+      await syncCloud();
       alert(`Recibo eliminado. Stock actual: ${kgfmt(getStock())} Kg`);
     }
 
-    function borrarTodosRecibos(){
+    async function borrarTodosRecibos(){
       const recibos = getRecibos();
       if(recibos.length === 0) return alert("No hay recibos para borrar.");
 
@@ -822,6 +808,7 @@
       setStock(getStock() + totalKg);
 
       renderRecibos();
+      await syncCloud();
       alert(`Recibos borrados. Stock actual: ${kgfmt(getStock())} Kg`);
     }
 
@@ -878,8 +865,29 @@
       document.body.removeChild(link);
     }
 
-    // ====== INIT ======
-    function init(){
+    // ====== INIT (nube -> local -> UI) ======
+    async function init(){
+      // Espera a que el módulo Firebase haya cargado window.cloud
+      // (si por algo tarda, reintenta rápido)
+      let tries = 0;
+      while (!window.cloud && tries < 50) { // hasta ~5s
+        await new Promise(r => setTimeout(r, 100));
+        tries++;
+      }
+      if(!window.cloud) {
+        alert("No se pudo inicializar Firebase. Revisa conexión / consola.");
+        return;
+      }
+
+      // 1) Cargar nube (crea stores/yukitas si no existe)
+      const data = await window.cloud.load();
+
+      // 2) Nube -> localStorage
+      localStorage.setItem(K_STOCK, String(data.stock || 0));
+      localStorage.setItem(K_CLIENTES, JSON.stringify(data.clientes || []));
+      localStorage.setItem(K_RECIBOS, JSON.stringify(data.recibos || []));
+
+      // 3) UI
       document.getElementById('ventaFecha').value = nowISOForInput();
       refreshClientesSelect();
       limpiarVenta();
@@ -887,17 +895,23 @@
       renderStock();
       renderClientes();
 
-      // Atajos POS (opcionales): Enter para guardar si estás en ventaPrecioKg o ventaKg
-      document.getElementById('ventaPrecioKg').addEventListener('keydown', (e)=>{ if(e.key==='Enter') guardarRecibo(); });
-      document.getElementById('ventaKg').addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('ventaPrecioKg').focus(); });
+      // 4) Atajos POS
+      document.getElementById('ventaPrecioKg').addEventListener('keydown', (e)=>{
+        if(e.key === "Enter") guardarRecibo();
+      });
+      document.getElementById('ventaKg').addEventListener('keydown', (e)=>{
+        if(e.key === "Enter") document.getElementById('ventaPrecioKg').focus();
+      });
     }
-    window.onload = init;
-  </script>
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js");
-  }
-</script>
 
+    window.onload = () => { init(); };
+  </script>
+
+  <!-- Service Worker (PWA) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js");
+    }
+  </script>
 </body>
 </html>
