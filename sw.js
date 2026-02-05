@@ -1,16 +1,19 @@
-const CACHE = "yukitas-pos-v2"; // <-- sube versión para forzar actualización
+// sw.js  (PWA seguro para Firebase/Firestore)
+const CACHE = "yukitas-pos-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
 ];
 
+// Instalación: cachea lo básico
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
 });
 
+// Activación: limpia caches viejos
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -19,7 +22,7 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// 🔥 Importante: NO cachear requests que no sean GET (Firestore usa POST, etc)
+// Fetch: NO cachear nada que no sea GET (Firestore usa POST/OPTIONS)
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") {
     e.respondWith(fetch(e.request));
@@ -32,6 +35,9 @@ self.addEventListener("fetch", (e) => {
 
       return fetch(e.request)
         .then((resp) => {
+          // No cachear respuestas inválidas
+          if (!resp || resp.status !== 200 || resp.type === "opaque") return resp;
+
           const copy = resp.clone();
           caches.open(CACHE).then((c) => c.put(e.request, copy));
           return resp;
