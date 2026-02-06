@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yuca PRO — POS (Yukitas)</title>
+  <title>Yukitas — POS</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -240,7 +240,7 @@
     }
   </style>
 
-  <!-- ===== Firebase (Firestore) - CDN module ===== -->
+  <!-- Firebase (Firestore) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
@@ -258,7 +258,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Misma data para todos
     const storeId = "yukitas";
 
     window.cloud = {
@@ -266,11 +265,15 @@
         const ref = doc(db, "stores", storeId);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
-          const init = { stock: 0, clientes: [], recibos: [] };
+          const init = { stock: 0, clientes: [], recibos: [], produccion: [], gastosMensuales: {} };
           await setDoc(ref, init);
           return init;
         }
-        return snap.data();
+        const d = snap.data();
+        // compat: si ya existía antes sin campos nuevos
+        if(!d.produccion) d.produccion = [];
+        if(!d.gastosMensuales) d.gastosMensuales = {};
+        return d;
       },
       async save(data) {
         const ref = doc(db, "stores", storeId);
@@ -286,19 +289,20 @@
     <div class="topbar">
       <div class="brand">
         <b>Yukitas — POS</b>
-        <span>Venta rápida • Stock • Clientes (nube)</span>
+        <span>Venta rápida • Stock • Clientes • Reportes</span>
       </div>
 
       <div class="top-actions">
         <button class="btn blue" onclick="openClientes()">👤 Clientes</button>
-        <button class="btn gray" onclick="exportarRecibosCSV()">⬇️ Exportar recibos</button>
-        <button class="btn gray" onclick="exportarClientesCSV()">⬇️ Exportar clientes</button>
+        <button class="btn blue" onclick="openReportes()">📊 Reportes</button>
+        <button class="btn gray" onclick="exportarRecibosCSV()">⬇️ Recibos</button>
+        <button class="btn gray" onclick="exportarClientesCSV()">⬇️ Clientes</button>
       </div>
     </div>
 
     <div class="pos">
 
-      <!-- LEFT -->
+      <!-- LEFT: Venta -->
       <div class="card">
         <h3>VENTA RÁPIDA</h3>
 
@@ -355,10 +359,10 @@
           <button class="btn gray" onclick="limpiarVenta()">🧹 Limpiar</button>
         </div>
 
-        <div class="hint">Tip: si el cliente no existe, toca <b>Clientes</b> arriba y lo creas sin salir de la venta.</div>
+        <div class="hint">Tip: si el cliente no existe, toca <b>Clientes</b> y lo creas.</div>
       </div>
 
-      <!-- RIGHT -->
+      <!-- RIGHT: Stock + producción + historial -->
       <div class="card">
         <h3>STOCK Y HISTORIAL</h3>
 
@@ -374,15 +378,23 @@
               <input id="prodKg" type="number" step="0.01" min="0" placeholder="Ej: 50" />
             </div>
             <div>
+              <label>Costo producción ($) (lote)</label>
+              <input id="prodCosto" type="number" step="0.01" min="0" placeholder="Ej: 120000" />
+            </div>
+
+            <div style="grid-column: 1 / span 2;">
+              <label>Detalle costo (opcional)</label>
+              <input id="prodDetalle" placeholder="Ej: compra yuca + transporte" />
+            </div>
+
+            <button class="btn primary" onclick="registrarProduccion()">➕ Registrar producción</button>
+            <button class="btn blue" onclick="aplicarAjusteStock()">± Ajuste stock</button>
+
+            <div>
               <label>Ajuste (±Kg)</label>
               <input id="ajusteStock" type="number" step="0.01" placeholder="Ej: -5 o 10" />
             </div>
-
-            <button class="btn primary" onclick="registrarProduccion()">➕ Sumar</button>
-            <button class="btn blue" onclick="aplicarAjusteStock()">± Ajustar</button>
-
-            <button class="btn gray" onclick="document.getElementById('prodKg').value='';document.getElementById('ajusteStock').value=''">🧹 Limpiar</button>
-            <button class="btn danger" onclick="resetStock()">🧨 Reset 0</button>
+            <button class="btn danger" onclick="resetStock()">🧨 Reset stock 0</button>
           </div>
         </div>
 
@@ -472,6 +484,95 @@
     </div>
   </div>
 
+  <!-- MODAL REPORTES -->
+  <div class="modalBackdrop" id="reportesModal" onclick="modalBackdropClickReport(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modalHeader">
+        <b>Reporte mensual</b>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn gray small" onclick="exportarReporteCSV()">⬇️ CSV</button>
+          <button class="btn blue small" onclick="closeReportes()">Cerrar ✕</button>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(255,255,255,.03); box-shadow:none;">
+        <div class="grid3">
+          <div>
+            <label>Mes</label>
+            <input id="repMes" type="month" />
+          </div>
+          <div>
+            <label>Gastos fijos del mes ($)</label>
+            <input id="repGastosFijos" type="number" step="0.01" min="0" placeholder="Ej: 300000" />
+          </div>
+          <div style="display:flex; align-items:end; gap:10px; flex-wrap:wrap;">
+            <button class="btn primary" onclick="guardarGastosMes()">💾 Guardar gastos</button>
+            <button class="btn gray" onclick="calcularReporte()">🔄 Calcular</button>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:12px;">
+          <div class="stockBig">
+            <div class="slabel">Kg producidos</div>
+            <div class="svalue" id="repKgProd">0.00</div>
+          </div>
+          <div class="stockBig">
+            <div class="slabel">Costo producción</div>
+            <div class="svalue" id="repCostoProd">$0</div>
+          </div>
+          <div class="stockBig">
+            <div class="slabel">Costo promedio Kg</div>
+            <div class="svalue" id="repCostoKg">$0</div>
+          </div>
+
+          <div class="stockBig">
+            <div class="slabel">Kg vendidos</div>
+            <div class="svalue" id="repKgVend">0.00</div>
+          </div>
+          <div class="stockBig">
+            <div class="slabel">Ventas</div>
+            <div class="svalue" id="repVentas">$0</div>
+          </div>
+          <div class="stockBig">
+            <div class="slabel">Precio promedio Kg</div>
+            <div class="svalue" id="repPrecioKg">$0</div>
+          </div>
+
+          <div class="stockBig">
+            <div class="slabel">COGS</div>
+            <div class="svalue" id="repCogs">$0</div>
+          </div>
+          <div class="stockBig">
+            <div class="slabel">Utilidad bruta</div>
+            <div class="svalue" id="repUBruta">$0</div>
+          </div>
+          <div class="stockBig">
+            <div class="slabel">Utilidad neta</div>
+            <div class="svalue" id="repUNeta">$0</div>
+          </div>
+        </div>
+
+        <div class="hint" style="margin-top:10px;">
+          COGS = (CostoProd/KgProd) * KgVendidos (promedio ponderado mensual).
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(255,255,255,.03); box-shadow:none;">
+        <h3>Detalle del mes</h3>
+        <div class="tableWrap">
+          <table style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Tipo</th><th>Fecha</th><th>Kg</th><th>$</th><th>Nota</th>
+              </tr>
+            </thead>
+            <tbody id="repDetalleBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- IMPRESIÓN -->
   <div class="print-area" id="printArea">
     <div class="print-title">RECIBO DE VENTA (Yuca)</div>
@@ -502,10 +603,12 @@
   </div>
 
   <script>
-    // ====== STORAGE KEYS (local cache) ======
+    // ====== LOCAL STORAGE KEYS ======
     const K_CLIENTES = "yuca_clientes_simple_pos_v1";
     const K_RECIBOS  = "yuca_recibos_simple_pos_v1";
     const K_STOCK    = "yuca_stock_kg_pos_v1";
+    const K_PROD     = "yuca_produccion_pos_v1";
+    const K_GASTOS   = "yuca_gastos_mensuales_pos_v1";
 
     // ====== FORMAT ======
     const money = (n) => (Number(n)||0).toLocaleString('es-CO', { maximumFractionDigits: 2 });
@@ -526,6 +629,12 @@
     function getRecibos(){ return JSON.parse(localStorage.getItem(K_RECIBOS)) || []; }
     function setRecibos(x){ localStorage.setItem(K_RECIBOS, JSON.stringify(x)); }
 
+    function getProduccion(){ return JSON.parse(localStorage.getItem(K_PROD)) || []; }
+    function setProduccion(x){ localStorage.setItem(K_PROD, JSON.stringify(x)); }
+
+    function getGastosMensuales(){ return JSON.parse(localStorage.getItem(K_GASTOS)) || {}; }
+    function setGastosMensuales(x){ localStorage.setItem(K_GASTOS, JSON.stringify(x)); }
+
     function getStock(){
       const v = parseFloat(localStorage.getItem(K_STOCK));
       return Number.isFinite(v) ? v : 0;
@@ -537,15 +646,16 @@
 
     // ====== CLOUD SYNC ======
     async function syncCloud(){
-      // Guardar estado completo a Firestore
       await window.cloud.save({
         stock: getStock(),
         clientes: getClientes(),
-        recibos: getRecibos()
+        recibos: getRecibos(),
+        produccion: getProduccion(),
+        gastosMensuales: getGastosMensuales()
       });
     }
 
-    // ====== MODAL ======
+    // ====== MODALS ======
     function openClientes(){
       document.getElementById('clientesModal').classList.add('open');
       renderClientes();
@@ -557,6 +667,26 @@
       if(e.target && e.target.id === 'clientesModal') closeClientes();
     }
 
+    function openReportes(){
+      document.getElementById('reportesModal').classList.add('open');
+      const d = new Date();
+      const pad = (x)=> String(x).padStart(2,'0');
+      const ym = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+      const mesInput = document.getElementById('repMes');
+      if(!mesInput.value) mesInput.value = ym;
+
+      const gastos = getGastosMensuales();
+      document.getElementById('repGastosFijos').value = gastos[mesInput.value] || 0;
+
+      calcularReporte();
+    }
+    function closeReportes(){
+      document.getElementById('reportesModal').classList.remove('open');
+    }
+    function modalBackdropClickReport(e){
+      if(e.target && e.target.id === 'reportesModal') closeReportes();
+    }
+
     // ====== STOCK UI ======
     function renderStock(){
       document.getElementById('stockActual').textContent = kgfmt(getStock());
@@ -564,10 +694,29 @@
 
     async function registrarProduccion(){
       const kg = parseFloat(document.getElementById('prodKg').value) || 0;
-      if(kg <= 0) return alert("Kg procesados debe ser > 0");
+      const costo = parseFloat(document.getElementById('prodCosto').value) || 0;
+      const detalle = (document.getElementById('prodDetalle').value || "").trim();
+
+      if(kg <= 0) return alert("Kg producidos debe ser > 0");
+
       const nuevo = getStock() + kg;
       setStock(nuevo);
+
+      const prod = getProduccion();
+      prod.unshift({
+        id: uid(),
+        fechaISO: new Date().toISOString(),
+        kg,
+        costoTotal: costo,
+        costoKg: kg > 0 ? (costo / kg) : 0,
+        detalle
+      });
+      setProduccion(prod);
+
       document.getElementById('prodKg').value = '';
+      document.getElementById('prodCosto').value = '';
+      document.getElementById('prodDetalle').value = '';
+
       await syncCloud();
       alert(`Producción: +${kgfmt(kg)} Kg. Stock: ${kgfmt(nuevo)} Kg`);
     }
@@ -743,10 +892,8 @@
       recibos.unshift(recibo);
       setRecibos(recibos);
 
-      // restar stock
       setStock(stock - kg);
 
-      // preparar impresión
       cargarReciboParaImprimir(recibo.id);
 
       limpiarVenta();
@@ -825,6 +972,120 @@
       descargarBlob(csv, "recibos_yuca.csv", "text/csv;charset=utf-8;");
     }
 
+    // ====== REPORTES ======
+    async function guardarGastosMes(){
+      const mes = document.getElementById('repMes').value;
+      if(!mes) return alert("Selecciona un mes.");
+      const v = parseFloat(document.getElementById('repGastosFijos').value) || 0;
+      const gastos = getGastosMensuales();
+      gastos[mes] = v;
+      setGastosMensuales(gastos);
+      await syncCloud();
+      calcularReporte();
+    }
+
+    function monthRange(ym){
+      const [Y,M] = ym.split('-').map(Number);
+      const start = new Date(Y, M-1, 1, 0,0,0,0);
+      const end   = new Date(Y, M,   1, 0,0,0,0);
+      return { start, end };
+    }
+
+    function calcularReporte(){
+      const ym = document.getElementById('repMes').value;
+      if(!ym) return;
+
+      const {start, end} = monthRange(ym);
+
+      const prod = getProduccion().filter(p=>{
+        const t = new Date(p.fechaISO);
+        return t >= start && t < end;
+      });
+
+      const rec = getRecibos().filter(r=>{
+        const t = new Date(r.fechaISO);
+        return t >= start && t < end;
+      });
+
+      const kgProd = prod.reduce((a,p)=> a + (Number(p.kg)||0), 0);
+      const costoProd = prod.reduce((a,p)=> a + (Number(p.costoTotal)||0), 0);
+      const costoKg = kgProd > 0 ? (costoProd / kgProd) : 0;
+
+      const kgVend = rec.reduce((a,r)=> a + (Number(r.kg)||0), 0);
+      const ventas = rec.reduce((a,r)=> a + (Number(r.total)||0), 0);
+      const precioKg = kgVend > 0 ? (ventas / kgVend) : 0;
+
+      const cogs = costoKg * kgVend;
+      const uBruta = ventas - cogs;
+
+      const gastos = getGastosMensuales();
+      const gastosFijos = Number(gastos[ym] || 0);
+      document.getElementById('repGastosFijos').value = gastosFijos;
+
+      const uNeta = uBruta - gastosFijos;
+
+      document.getElementById('repKgProd').textContent = kgfmt(kgProd);
+      document.getElementById('repCostoProd').textContent = `$${money(costoProd)}`;
+      document.getElementById('repCostoKg').textContent = `$${money(costoKg)}`;
+
+      document.getElementById('repKgVend').textContent = kgfmt(kgVend);
+      document.getElementById('repVentas').textContent = `$${money(ventas)}`;
+      document.getElementById('repPrecioKg').textContent = `$${money(precioKg)}`;
+
+      document.getElementById('repCogs').textContent = `$${money(cogs)}`;
+      document.getElementById('repUBruta').textContent = `$${money(uBruta)}`;
+      document.getElementById('repUNeta').textContent = `$${money(uNeta)}`;
+
+      const body = document.getElementById('repDetalleBody');
+      body.innerHTML = "";
+
+      prod.slice().reverse().forEach(p=>{
+        body.innerHTML += `
+          <tr>
+            <td>Producción</td>
+            <td>${new Date(p.fechaISO).toLocaleString('es-CO')}</td>
+            <td>${kgfmt(p.kg)}</td>
+            <td>$${money(p.costoTotal||0)}</td>
+            <td>${(p.detalle||"")}</td>
+          </tr>`;
+      });
+
+      rec.slice().reverse().forEach(r=>{
+        body.innerHTML += `
+          <tr>
+            <td>Venta #${r.numero}</td>
+            <td>${new Date(r.fechaISO).toLocaleString('es-CO')}</td>
+            <td>${kgfmt(r.kg)}</td>
+            <td>$${money(r.total)}</td>
+            <td>${(r.clienteNombre||"")}</td>
+          </tr>`;
+      });
+    }
+
+    function exportarReporteCSV(){
+      const ym = document.getElementById('repMes').value;
+      if(!ym) return alert("Selecciona un mes.");
+
+      const {start, end} = monthRange(ym);
+      const prod = getProduccion().filter(p=> new Date(p.fechaISO)>=start && new Date(p.fechaISO)<end);
+      const rec  = getRecibos().filter(r=> new Date(r.fechaISO)>=start && new Date(r.fechaISO)<end);
+
+      const sep=';';
+      let csv = "Tipo;Fecha;Kg;Valor;Nota\n";
+
+      prod.slice().reverse().forEach(p=>{
+        csv += ["Produccion", new Date(p.fechaISO).toLocaleString('es-CO'), p.kg, p.costoTotal||0, p.detalle||""]
+          .map(v=> String(v).replaceAll('\n',' ').replaceAll(sep, ',')).join(sep) + "\n";
+      });
+
+      rec.slice().reverse().forEach(r=>{
+        csv += [`Venta#${r.numero}`, new Date(r.fechaISO).toLocaleString('es-CO'), r.kg, r.total, r.clienteNombre||""]
+          .map(v=> String(v).replaceAll('\n',' ').replaceAll(sep, ',')).join(sep) + "\n";
+      });
+
+      descargarBlob(csv, `reporte_${ym}.csv`, "text/csv;charset=utf-8;");
+    }
+
     // ====== IMPRESIÓN ======
     function verImprimir(reciboId){
       cargarReciboParaImprimir(reciboId);
@@ -867,27 +1128,18 @@
 
     // ====== INIT (nube -> local -> UI) ======
     async function init(){
-      // Espera a que el módulo Firebase haya cargado window.cloud
-      // (si por algo tarda, reintenta rápido)
       let tries = 0;
-      while (!window.cloud && tries < 50) { // hasta ~5s
-        await new Promise(r => setTimeout(r, 100));
-        tries++;
-      }
-      if(!window.cloud) {
-        alert("No se pudo inicializar Firebase. Revisa conexión / consola.");
-        return;
-      }
+      while (!window.cloud && tries < 50) { await new Promise(r => setTimeout(r, 100)); tries++; }
+      if(!window.cloud) { alert("No se pudo inicializar Firebase."); return; }
 
-      // 1) Cargar nube (crea stores/yukitas si no existe)
       const data = await window.cloud.load();
 
-      // 2) Nube -> localStorage
       localStorage.setItem(K_STOCK, String(data.stock || 0));
       localStorage.setItem(K_CLIENTES, JSON.stringify(data.clientes || []));
       localStorage.setItem(K_RECIBOS, JSON.stringify(data.recibos || []));
+      localStorage.setItem(K_PROD, JSON.stringify(data.produccion || []));
+      localStorage.setItem(K_GASTOS, JSON.stringify(data.gastosMensuales || {}));
 
-      // 3) UI
       document.getElementById('ventaFecha').value = nowISOForInput();
       refreshClientesSelect();
       limpiarVenta();
@@ -895,19 +1147,22 @@
       renderStock();
       renderClientes();
 
-      // 4) Atajos POS
+      // Atajos POS
       document.getElementById('ventaPrecioKg').addEventListener('keydown', (e)=>{
         if(e.key === "Enter") guardarRecibo();
       });
       document.getElementById('ventaKg').addEventListener('keydown', (e)=>{
         if(e.key === "Enter") document.getElementById('ventaPrecioKg').focus();
       });
+      document.getElementById('prodCosto').addEventListener('keydown', (e)=>{
+        if(e.key === "Enter") registrarProduccion();
+      });
     }
 
     window.onload = () => { init(); };
   </script>
 
-  <!-- Service Worker (PWA) -->
+  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js");
