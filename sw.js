@@ -46,3 +46,10 @@ self.addEventListener("fetch", (e) => {
     })
   );
 });
+async function syncCloud(){
+  await window.cloud.save({
+    stock: getStock(),
+    clientes: getClientes(),
+    recibos: getRecibos()
+  });
+}
